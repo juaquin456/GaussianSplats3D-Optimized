@@ -1,11 +1,11 @@
 import { AbortablePromise, AbortedPromiseError } from './AbortablePromise.js';
 
-export const floatToHalf = function() {
+export const floatToHalf = function () {
 
     const floatView = new Float32Array(1);
     const int32View = new Int32Array(floatView.buffer);
 
-    return function(val) {
+    return function (val) {
         floatView[0] = val;
         const x = int32View[0];
 
@@ -27,34 +27,34 @@ export const floatToHalf = function() {
             return bits;
         }
 
-        bits |= (( e - 112) << 10) | (m >> 1);
+        bits |= ((e - 112) << 10) | (m >> 1);
         bits += m & 1;
         return bits;
     };
 
 }();
 
-export const uintEncodedFloat = function() {
+export const uintEncodedFloat = function () {
 
     const floatView = new Float32Array(1);
     const int32View = new Int32Array(floatView.buffer);
 
-    return function(f) {
+    return function (f) {
         floatView[0] = f;
         return int32View[0];
     };
 
 }();
 
-export const rgbaToInteger = function(r, g, b, a) {
+export const rgbaToInteger = function (r, g, b, a) {
     return r + (g << 8) + (b << 16) + (a << 24);
 };
 
-export const rgbaArrayToInteger = function(arr, offset) {
+export const rgbaArrayToInteger = function (arr, offset) {
     return arr[offset] + (arr[offset + 1] << 8) + (arr[offset + 2] << 16) + (arr[offset + 3] << 24);
 };
 
-export const fetchWithProgress = function(path, onProgress, saveChunks = true, headers) {
+export const fetchWithProgress = function (path, onProgress, saveChunks = true, headers) {
 
     const abortController = new AbortController();
     const signal = abortController.signal;
@@ -74,67 +74,113 @@ export const fetchWithProgress = function(path, onProgress, saveChunks = true, h
         }
     };
 
-    return new AbortablePromise((resolve, reject) => {
-        const fetchOptions = { signal };
-        if (headers) fetchOptions.headers = headers;
-         fetch(path, fetchOptions)
-        .then(async (data) => {
-            // Handle error conditions where data is still returned
-            if (!data.ok) {
-                const errorText = await data.text();
-                reject(new Error(`Fetch failed: ${data.status} ${data.statusText} ${errorText}`));
-                return;
-            }
+    return new AbortablePromise(async (resolve, reject) => {
+        // Check if we're in Node.js environment
+        if (typeof window === 'undefined') {
+            // Node.js: use fs to read local files
+            try {
+                const fs = await import('fs');
+                const stats = fs.statSync(path);
+                const fileSize = stats.size;
+                const buffer = fs.readFileSync(path);
 
-            const reader = data.body.getReader();
-            let bytesDownloaded = 0;
-            let _fileSize = data.headers.get('Content-Length');
-            let fileSize = _fileSize ? parseInt(_fileSize) : undefined;
+                // Simulate progressive loading for compatibility
+                const chunkSize = 1024 * 1024; // 1MB chunks
+                let bytesRead = 0;
 
-            const chunks = [];
+                const readNextChunk = () => {
+                    if (aborted) return;
 
-            while (!aborted) {
-                try {
-                    const { value: chunk, done } = await reader.read();
-                    if (done) {
-                        localOnProgress(100, '100%', chunk, fileSize);
+                    const remaining = buffer.length - bytesRead;
+                    const chunkLength = Math.min(chunkSize, remaining);
+                    const chunk = buffer.slice(bytesRead, bytesRead + chunkLength);
+
+                    bytesRead += chunkLength;
+                    const percent = fileSize > 0 ? (bytesRead / fileSize) * 100 : 100;
+                    const percentLabel = `${percent.toFixed(2)}%`;
+
+                    localOnProgress(percent, percentLabel, chunk, fileSize);
+
+                    if (bytesRead >= buffer.length) {
+                        // File completely read
                         if (saveChunks) {
-                            const buffer = new Blob(chunks).arrayBuffer();
-                            resolve(buffer);
+                            resolve(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength));
                         } else {
                             resolve();
                         }
-                        break;
+                    } else {
+                        // Continue reading in next tick
+                        setTimeout(readNextChunk, 0);
                     }
-                    bytesDownloaded += chunk.length;
-                    let percent;
-                    let percentLabel;
-                    if (fileSize !== undefined) {
-                        percent = bytesDownloaded / fileSize * 100;
-                        percentLabel = `${percent.toFixed(2)}%`;
-                    }
-                    if (saveChunks) {
-                        chunks.push(chunk);
-                    }
-                    localOnProgress(percent, percentLabel, chunk, fileSize);
-                } catch (error) {
-                    reject(error);
-                    return;
-                }
+                };
+
+                readNextChunk();
+            } catch (error) {
+                reject(new AbortedPromiseError(error));
             }
-        })
-        .catch((error) => {
-            reject(new AbortedPromiseError(error));
-        });
+        } else {
+            // Browser: use fetch
+            const fetchOptions = { signal };
+            if (headers) fetchOptions.headers = headers;
+            fetch(path, fetchOptions)
+                .then(async (data) => {
+                    // Handle error conditions where data is still returned
+                    if (!data.ok) {
+                        const errorText = await data.text();
+                        reject(new Error(`Fetch failed: ${data.status} ${data.statusText} ${errorText}`));
+                        return;
+                    }
+
+                    const reader = data.body.getReader();
+                    let bytesDownloaded = 0;
+                    let _fileSize = data.headers.get('Content-Length');
+                    let fileSize = _fileSize ? parseInt(_fileSize) : undefined;
+
+                    const chunks = [];
+
+                    while (!aborted) {
+                        try {
+                            const { value: chunk, done } = await reader.read();
+                            if (done) {
+                                localOnProgress(100, '100%', chunk, fileSize);
+                                if (saveChunks) {
+                                    const buffer = new Blob(chunks).arrayBuffer();
+                                    resolve(buffer);
+                                } else {
+                                    resolve();
+                                }
+                                break;
+                            }
+                            bytesDownloaded += chunk.length;
+                            let percent;
+                            let percentLabel;
+                            if (fileSize !== undefined) {
+                                percent = bytesDownloaded / fileSize * 100;
+                                percentLabel = `${percent.toFixed(2)}%`;
+                            }
+                            if (saveChunks) {
+                                chunks.push(chunk);
+                            }
+                            localOnProgress(percent, percentLabel, chunk, fileSize);
+                        } catch (error) {
+                            reject(error);
+                            return;
+                        }
+                    }
+                })
+                .catch((error) => {
+                    reject(new AbortedPromiseError(error));
+                });
+        }
     }, abortHandler);
 
 };
 
-export const clamp = function(val, min, max) {
+export const clamp = function (val, min, max) {
     return Math.max(Math.min(val, max), min);
 };
 
-export const getCurrentTime = function() {
+export const getCurrentTime = function () {
     return performance.now() / 1000;
 };
 
@@ -156,7 +202,8 @@ export const disposeAllMeshes = (object3D) => {
 
 export const delayedExecute = (func, fast) => {
     return new Promise((resolve) => {
-        window.setTimeout(() => {
+        const setTimeoutFunc = typeof window !== 'undefined' ? window.setTimeout : global.setTimeout;
+        setTimeoutFunc(() => {
             resolve(func ? func() : undefined);
         }, fast ? 1 : 50);
     });
@@ -195,7 +242,7 @@ export const abortablePromiseWithExtractedComponents = (abortHandler) => {
     let resolver;
     let rejecter;
     if (!abortHandler) {
-        abortHandler = () => {};
+        abortHandler = () => { };
     }
     const promise = new AbortablePromise((resolve, reject) => {
         resolver = resolve;
