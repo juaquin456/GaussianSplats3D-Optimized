@@ -9,7 +9,6 @@ pub fn read_scene(path: String) -> Vec<Gaussian> {
     let parser = parser::Parser::<DefaultElement>::new();
     let ply = parser.read_ply(&mut f).unwrap();
 
-    println!("{:?}", ply.payload.keys().collect::<Vec<_>>());
     let vertices = ply.payload.get("vertex").unwrap();
 
     vertices.iter().map(Gaussian::from).collect()
