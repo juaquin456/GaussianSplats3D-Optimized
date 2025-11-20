@@ -2,17 +2,24 @@ use std::path::{Path, PathBuf};
 use crate::core::lod::ConfigLOD;
 
 pub struct Scene {
-    lod_levels: Vec<ConfigLOD>,
     origin_file: PathBuf,
 }
 impl Scene {
-    pub fn new(origin_file: &String) -> Scene {
+    pub fn new<P: AsRef<Path>>(origin_file: P) -> Scene {
         Scene{
-            lod_levels: Vec::new(),
-            origin_file: PathBuf::from(origin_file),
+            origin_file: origin_file.as_ref().to_path_buf(),
         }
     }
-    pub fn add_lod(&mut self, lod_level: ConfigLOD) {
-        self.lod_levels.push(lod_level);
+
+    /*
+    pub fn calculate_subdivision(enum mode) {
+        // read ply
+        Config // geometria de cada chunk, num chunks, filename chunk
+        switch {
+            KMeans::Execute(ply)
+            Regular::Square
+        }
+
     }
+     */
 }
