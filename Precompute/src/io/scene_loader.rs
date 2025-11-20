@@ -1,9 +1,10 @@
-use ply_rs::ply::DefaultElement;
+use ply_rs::ply::{DefaultElement, Header};
 use ply_rs::parser;
 use std::fs::File;
+use std::path::Path;
 use crate::core::gaussian::Gaussian;
 
-pub fn read_scene(path: String) -> Vec<Gaussian> {
+pub fn read_scene<P: AsRef<Path>>(path: P) -> (Vec<Gaussian>, Header) {
     let mut f = File::open(path).unwrap();
 
     let parser = parser::Parser::<DefaultElement>::new();
@@ -11,5 +12,5 @@ pub fn read_scene(path: String) -> Vec<Gaussian> {
 
     let vertices = ply.payload.get("vertex").unwrap();
 
-    vertices.iter().map(Gaussian::from).collect()
+    (vertices.iter().map(Gaussian::from).collect(), ply.header)
 }

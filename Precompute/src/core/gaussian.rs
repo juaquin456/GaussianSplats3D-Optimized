@@ -76,3 +76,36 @@ impl From<&DefaultElement> for Gaussian {
         }
     }
 }
+
+impl Into<DefaultElement> for Gaussian {
+    fn into(self) -> DefaultElement {
+        let mut elem = DefaultElement::new();
+        elem["x"] = Property::Float(self.position[0]);
+        elem["y"] = Property::Float(self.position[1]);
+        elem["z"] = Property::Float(self.normal[0]);
+        
+        elem["nxx"] = Property::Float(self.normal[1]);
+        elem["nyx"] = Property::Float(self.normal[2]);
+        elem["nz"] = Property::Float(self.normal[3]);
+        
+        for i in 0..3 {
+            elem[format!("f_rest_{}", i).as_str()] = Property::Float(self.f_dc[i]);
+        }
+        
+        for i in 0..45 {
+            elem[format!("f_rest_{}", i).as_str()] = Property::Float(self.f_dc[i]);
+        }
+        
+        elem["opacity"] = Property::Float(self.opacity);
+
+        elem["scale_0"] = Property::Float(self.scale[0]);
+        elem["scale_1"] = Property::Float(self.scale[1]);
+        elem["scale_2"] = Property::Float(self.scale[2]);
+        
+        for i in 0..4 {
+            elem[format!("rot_{}", i).as_str()] = Property::Float(self.rot[i]);
+        }
+         
+        elem
+    }
+}
