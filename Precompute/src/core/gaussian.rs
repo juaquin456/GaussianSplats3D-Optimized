@@ -82,14 +82,14 @@ impl Into<DefaultElement> for Gaussian {
         let mut elem = DefaultElement::new();
         elem["x"] = Property::Float(self.position[0]);
         elem["y"] = Property::Float(self.position[1]);
-        elem["z"] = Property::Float(self.normal[0]);
+        elem["z"] = Property::Float(self.position[2]);
         
-        elem["nxx"] = Property::Float(self.normal[1]);
-        elem["nyx"] = Property::Float(self.normal[2]);
-        elem["nz"] = Property::Float(self.normal[3]);
+        elem["nxx"] = Property::Float(self.normal[0]);
+        elem["ny"] = Property::Float(self.normal[1]);
+        elem["nz"] = Property::Float(self.normal[2]);
         
         for i in 0..3 {
-            elem[format!("f_rest_{}", i).as_str()] = Property::Float(self.f_dc[i]);
+            elem[format!("f_dc_{}", i).as_str()] = Property::Float(self.f_dc[i]);
         }
         
         for i in 0..45 {
