@@ -25,6 +25,15 @@ fn get_f32(elem: &DefaultElement, key: &str) -> f32 {
     }
 }
 
+impl Gaussian {
+    pub fn distance_to(&self, point: &[f32; 3]) -> f32 {
+        let dx = self.position[0] - point[0];
+        let dy = self.position[1] - point[1];
+        let dz = self.position[2] - point[2];
+        (dx*dx + dy*dy + dz*dz).sqrt()
+    }
+}
+
 impl From<&DefaultElement> for Gaussian {
     fn from(elem: &DefaultElement) -> Self {
         let position = [
@@ -34,7 +43,7 @@ impl From<&DefaultElement> for Gaussian {
         ];
 
         let normal = [
-            get_f32(elem, "nxx"),
+            get_f32(elem, "nx"),
             get_f32(elem, "ny"),
             get_f32(elem, "nz"),
         ];
@@ -83,8 +92,7 @@ impl Into<DefaultElement> for Gaussian {
         elem["x"] = Property::Float(self.position[0]);
         elem["y"] = Property::Float(self.position[1]);
         elem["z"] = Property::Float(self.position[2]);
-        
-        elem["nxx"] = Property::Float(self.normal[0]);
+        elem["nx"] = Property::Float(self.normal[0]);
         elem["ny"] = Property::Float(self.normal[1]);
         elem["nz"] = Property::Float(self.normal[2]);
         
@@ -93,7 +101,7 @@ impl Into<DefaultElement> for Gaussian {
         }
         
         for i in 0..45 {
-            elem[format!("f_rest_{}", i).as_str()] = Property::Float(self.f_dc[i]);
+            elem[format!("f_rest_{}", i).as_str()] = Property::Float(self.f_rest[i]);
         }
         
         elem["opacity"] = Property::Float(self.opacity);
