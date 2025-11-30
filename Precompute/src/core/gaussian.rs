@@ -10,6 +10,7 @@ pub struct Gaussian {
     pub opacity: f32,
     pub scale: [f32; 3],
     pub rot: [f32; 4],
+    pub importance_score: f32,
 }
 fn get_f32(elem: &DefaultElement, key: &str) -> f32 {
     match elem.get(key) {
@@ -22,6 +23,18 @@ fn get_f32(elem: &DefaultElement, key: &str) -> f32 {
             }
         }
         None => panic!("Unexpected property type for {}", key),
+    }
+}
+
+fn get_f32_optional(elem: &DefaultElement, key: &str, default: f32) -> f32 {
+    match elem.get(key) {
+        Some(x) => match x {
+            Property::Float(x) => *x,
+            Property::Double(x) => *x as f32,
+            Property::Int(x) => *x as f32,
+            _ => default
+        },
+        None => default,
     }
 }
 
@@ -74,6 +87,8 @@ impl From<&DefaultElement> for Gaussian {
             get_f32(elem, "rot_3"),
         ];
 
+        let importance_score = get_f32_optional(elem, "importance_score", 0.0);
+
         Gaussian {
             position,
             normal,
@@ -82,6 +97,7 @@ impl From<&DefaultElement> for Gaussian {
             opacity,
             scale,
             rot,
+            importance_score,
         }
     }
 }
@@ -114,6 +130,8 @@ impl Into<DefaultElement> for Gaussian {
         for i in 0..4 {
             elem.insert(format!("rot_{}", i), Property::Float(self.rot[i]));
         }
+
+        elem.insert("importance_score".to_string(), Property::Float(self.importance_score));
          
         elem
     }
