@@ -6,4 +6,6 @@ Precompute/target
 Precompute/.idea
 Precompute/lod/
 Precompute/output_chunks/
+Precompute/input
+Precompute/output
 *.ply
