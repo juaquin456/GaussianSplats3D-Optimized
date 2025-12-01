@@ -4,3 +4,6 @@ node_modules
 **/*.DS_Store
 Precompute/target
 Precompute/.idea
+Precompute/lod/
+Precompute/output_chunks/
+*.ply
