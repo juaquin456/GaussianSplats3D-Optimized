@@ -17,7 +17,7 @@ pub struct LODManifest {
 
 impl LODManifest {
     pub fn from_folder<P: AsRef<Path>>(folder: P) -> Result<Self, Box<dyn std::error::Error>> {
-        let manifest_path = folder.as_ref().join("manifest.json");
+        let manifest_path = folder.as_ref().join("config.json");
         let file = File::open(&manifest_path)?;
         let reader = BufReader::new(file);
         let manifest: LODManifest = serde_json::from_reader(reader)?;
