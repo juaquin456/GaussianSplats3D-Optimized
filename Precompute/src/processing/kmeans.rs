@@ -49,12 +49,12 @@ impl PartitionStrategy for KMeans {
             return points.to_vec();
         }
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut centroids: Vec<Point3> = (0..self.k)
-            .map(|_| points[rng.gen_range(0..n_points)])
+            .map(|_| points[rng.random_range(0..n_points)])
             .collect();
 
-        for i in 0..self.max_iters {
+        for _ in 0..self.max_iters {
             let mut sums = vec![(0.0, 0.0, 0.0); self.k];
             let mut counts = vec![0; self.k];
             let mut changed = false;
