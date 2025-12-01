@@ -5,8 +5,8 @@ use std::convert::From;
 pub struct Gaussian {
     pub position: [f32; 3],
     pub normal: [f32; 3],
-    pub f_dc: [f32; 3], // DC coefficient
-    pub f_rest: [f32; 45], // SH coefficient
+    pub f_dc: [f32; 3],
+    pub f_rest: [f32; 45],
     pub opacity: f32,
     pub scale: [f32; 3],
     pub rot: [f32; 4],
@@ -112,11 +112,11 @@ impl Into<DefaultElement> for Gaussian {
         elem.insert("nx".to_string(), Property::Float(self.normal[0]));
         elem.insert("ny".to_string(), Property::Float(self.normal[1]));
         elem.insert("nz".to_string(), Property::Float(self.normal[2]));
-        
+
         for i in 0..3 {
             elem.insert(format!("f_dc_{}", i), Property::Float(self.f_dc[i]));
         }
-        
+
         for i in 0..45 {
             elem.insert(format!("f_rest_{}", i), Property::Float(self.f_rest[i]));
         }
@@ -126,13 +126,13 @@ impl Into<DefaultElement> for Gaussian {
         elem.insert("scale_0".to_string(), Property::Float(self.scale[0]));
         elem.insert("scale_1".to_string(), Property::Float(self.scale[1]));
         elem.insert("scale_2".to_string(), Property::Float(self.scale[2]));
-        
+
         for i in 0..4 {
             elem.insert(format!("rot_{}", i), Property::Float(self.rot[i]));
         }
 
         elem.insert("importance_score".to_string(), Property::Float(self.importance_score));
-         
+
         elem
     }
 }
