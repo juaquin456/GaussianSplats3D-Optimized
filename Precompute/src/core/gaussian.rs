@@ -1,5 +1,8 @@
-use ply_rs::ply::{DefaultElement, Property};
 use std::convert::From;
+use nalgebra::Vector3;
+use ply_rs::ply::{DefaultElement, Property};
+
+
 
 #[derive(Copy, Clone, Debug)]
 pub struct Gaussian {
@@ -39,7 +42,14 @@ fn get_f32_optional(elem: &DefaultElement, key: &str, default: f32) -> f32 {
 }
 
 impl Gaussian {
-    pub fn distance_to(&self, point: &[f32; 3]) -> f32 {
+    pub fn position_vec(&self) -> Vector3<f32> {
+        Vector3::new(self.position[0], self.position[1], self.position[2])
+    }
+    pub fn distance_to(&self, point: &Vector3<f32>) -> f32 {
+        (self.position_vec() - point).norm()
+    }
+
+    pub fn distance_to_array(&self, point: &[f32; 3]) -> f32 {
         let dx = self.position[0] - point[0];
         let dy = self.position[1] - point[1];
         let dz = self.position[2] - point[2];
