@@ -4,13 +4,17 @@ use std::fs::File;
 use std::path::Path;
 use crate::core::gaussian::Gaussian;
 
-pub fn read_scene<P: AsRef<Path>>(path: P) -> (Vec<Gaussian>, Header) {
-    let mut f = File::open(path).unwrap();
+pub fn read_scene<P: AsRef<Path>>(path: P) -> Result<(Vec<Gaussian>, Header), Box<dyn std::error::Error>> {
+    let mut f = File::open(path.as_ref())?;
 
     let parser = parser::Parser::<DefaultElement>::new();
-    let ply = parser.read_ply(&mut f).unwrap();
+    let ply = parser.read_ply(&mut f)
+        .map_err(|e| format!("Error al parsear PLY: {:?}", e))?;
 
-    let vertices = ply.payload.get("vertex").unwrap();
+    let vertices = ply.payload.get("vertex")
+        .ok_or("No se encontró el elemento 'vertex' en el PLY")?;
 
-    (vertices.iter().map(Gaussian::from).collect(), ply.header)
+    let gaussians: Vec<Gaussian> = vertices.iter().map(Gaussian::from).collect();
+
+    Ok((gaussians, ply.header))
 }

@@ -1,15 +1,19 @@
-use ply_rs::ply::{DefaultElement, Property};
 use std::convert::From;
+use nalgebra::Vector3;
+use ply_rs::ply::{DefaultElement, Property};
+
+
 
 #[derive(Copy, Clone, Debug)]
 pub struct Gaussian {
     pub position: [f32; 3],
     pub normal: [f32; 3],
-    pub f_dc: [f32; 3], // DC coefficient
-    pub f_rest: [f32; 45], // SH coefficient
+    pub f_dc: [f32; 3],
+    pub f_rest: [f32; 45],
     pub opacity: f32,
     pub scale: [f32; 3],
     pub rot: [f32; 4],
+    pub importance_score: f32,
 }
 fn get_f32(elem: &DefaultElement, key: &str) -> f32 {
     match elem.get(key) {
@@ -25,6 +29,34 @@ fn get_f32(elem: &DefaultElement, key: &str) -> f32 {
     }
 }
 
+fn get_f32_optional(elem: &DefaultElement, key: &str, default: f32) -> f32 {
+    match elem.get(key) {
+        Some(x) => match x {
+            Property::Float(x) => *x,
+            Property::Double(x) => *x as f32,
+            Property::Int(x) => *x as f32,
+            _ => default
+        },
+        None => default,
+    }
+}
+
+impl Gaussian {
+    pub fn position_vec(&self) -> Vector3<f32> {
+        Vector3::new(self.position[0], self.position[1], self.position[2])
+    }
+    pub fn distance_to(&self, point: &Vector3<f32>) -> f32 {
+        (self.position_vec() - point).norm()
+    }
+
+    pub fn distance_to_array(&self, point: &[f32; 3]) -> f32 {
+        let dx = self.position[0] - point[0];
+        let dy = self.position[1] - point[1];
+        let dz = self.position[2] - point[2];
+        (dx*dx + dy*dy + dz*dz).sqrt()
+    }
+}
+
 impl From<&DefaultElement> for Gaussian {
     fn from(elem: &DefaultElement) -> Self {
         let position = [
@@ -34,7 +66,7 @@ impl From<&DefaultElement> for Gaussian {
         ];
 
         let normal = [
-            get_f32(elem, "nxx"),
+            get_f32(elem, "nx"),
             get_f32(elem, "ny"),
             get_f32(elem, "nz"),
         ];
@@ -65,6 +97,8 @@ impl From<&DefaultElement> for Gaussian {
             get_f32(elem, "rot_3"),
         ];
 
+        let importance_score = get_f32_optional(elem, "importance_score", 0.0);
+
         Gaussian {
             position,
             normal,
@@ -73,6 +107,7 @@ impl From<&DefaultElement> for Gaussian {
             opacity,
             scale,
             rot,
+            importance_score,
         }
     }
 }
@@ -80,32 +115,34 @@ impl From<&DefaultElement> for Gaussian {
 impl Into<DefaultElement> for Gaussian {
     fn into(self) -> DefaultElement {
         let mut elem = DefaultElement::new();
-        elem["x"] = Property::Float(self.position[0]);
-        elem["y"] = Property::Float(self.position[1]);
-        elem["z"] = Property::Float(self.position[2]);
-        
-        elem["nxx"] = Property::Float(self.normal[0]);
-        elem["ny"] = Property::Float(self.normal[1]);
-        elem["nz"] = Property::Float(self.normal[2]);
-        
-        for i in 0..3 {
-            elem[format!("f_dc_{}", i).as_str()] = Property::Float(self.f_dc[i]);
-        }
-        
-        for i in 0..45 {
-            elem[format!("f_rest_{}", i).as_str()] = Property::Float(self.f_dc[i]);
-        }
-        
-        elem["opacity"] = Property::Float(self.opacity);
+        elem.insert("x".to_string(), Property::Float(self.position[0]));
+        elem.insert("y".to_string(), Property::Float(self.position[1]));
+        elem.insert("z".to_string(), Property::Float(self.position[2]));
 
-        elem["scale_0"] = Property::Float(self.scale[0]);
-        elem["scale_1"] = Property::Float(self.scale[1]);
-        elem["scale_2"] = Property::Float(self.scale[2]);
-        
-        for i in 0..4 {
-            elem[format!("rot_{}", i).as_str()] = Property::Float(self.rot[i]);
+        elem.insert("nx".to_string(), Property::Float(self.normal[0]));
+        elem.insert("ny".to_string(), Property::Float(self.normal[1]));
+        elem.insert("nz".to_string(), Property::Float(self.normal[2]));
+
+        for i in 0..3 {
+            elem.insert(format!("f_dc_{}", i), Property::Float(self.f_dc[i]));
         }
-         
+
+        for i in 0..45 {
+            elem.insert(format!("f_rest_{}", i), Property::Float(self.f_rest[i]));
+        }
+
+        elem.insert("opacity".to_string(), Property::Float(self.opacity));
+
+        elem.insert("scale_0".to_string(), Property::Float(self.scale[0]));
+        elem.insert("scale_1".to_string(), Property::Float(self.scale[1]));
+        elem.insert("scale_2".to_string(), Property::Float(self.scale[2]));
+
+        for i in 0..4 {
+            elem.insert(format!("rot_{}", i), Property::Float(self.rot[i]));
+        }
+
+        elem.insert("importance_score".to_string(), Property::Float(self.importance_score));
+
         elem
     }
 }
